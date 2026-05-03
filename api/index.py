@@ -5,13 +5,13 @@ import os
 
 # Relative import when running locally or on Vercel
 try:
-    from .downloader import extract_video_info
-    from .trending import get_trending_feed
-    from .youtube import extract_channel_videos, cut_hot_segment
+    from ._lib.downloader import extract_video_info
+    from ._lib.trending import get_trending_feed
+    from ._lib.youtube import extract_channel_videos, cut_hot_segment
 except ImportError:
-    from downloader import extract_video_info
-    from trending import get_trending_feed
-    from youtube import extract_channel_videos, cut_hot_segment
+    from _lib.downloader import extract_video_info
+    from _lib.trending import get_trending_feed
+    from _lib.youtube import extract_channel_videos, cut_hot_segment
 
 app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 
