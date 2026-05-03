@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Universal Video Downloader",
@@ -27,6 +28,11 @@ export default function RootLayout({
             `,
           }}
         />
+        <nav className="navbar">
+          <Link href="/" className="nav-link">Single Download</Link>
+          <Link href="/trending" className="nav-link">Trending Dashboard</Link>
+          <Link href="/yt-cutter" className="nav-link">YT Shorts Cutter</Link>
+        </nav>
         {children}
       </body>
     </html>

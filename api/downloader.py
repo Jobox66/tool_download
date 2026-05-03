@@ -18,12 +18,63 @@ def extract_tiktok(url: str):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-def extract_video_info(url: str):
-    # Dùng API chuyên dụng cho TikTok để tránh bị block (Unable to extract webpage video data)
+import os
+
+def download_youtube(url: str, format: str):
+    try:
+        os.makedirs("public/downloads", exist_ok=True)
+        # Extract info first
+        with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            vid = info.get('id', 'video')
+            title = info.get('title', 'Video')
+            thumbnail = info.get('thumbnail')
+            
+        ext = "mp3" if format == "mp3" else "mp4"
+        output_filename = f"public/downloads/{vid}.{ext}"
+        
+        # Check if already downloaded
+        if not os.path.exists(output_filename):
+            ydl_opts = {
+                'outtmpl': f"public/downloads/{vid}.%(ext)s", # yt-dlp replaces %(ext)s
+                'quiet': True,
+                'noplaylist': True,
+            }
+            if format == "mp3":
+                ydl_opts['format'] = 'bestaudio/best'
+                ydl_opts['postprocessors'] = [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }]
+            else:
+                ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+                ydl_opts['outtmpl'] = output_filename # MP4 will be directly saved as mp4
+                
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+                
+        return {
+            "success": True,
+            "title": title,
+            "thumbnail": thumbnail,
+            "video_url": f"/downloads/{vid}.{ext}",
+            "source_url": url,
+            "format": ext
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi tải YouTube: {str(e)}"}
+
+def extract_video_info(url: str, format: str = "mp4"):
+    # Dùng API chuyên dụng cho TikTok để tránh bị block
     if "tiktok.com" in url.lower():
         tiktok_res = extract_tiktok(url)
         if tiktok_res.get("success"):
             return tiktok_res
+
+    # Tải YouTube với tùy chọn định dạng mp4/mp3
+    if "youtube.com" in url.lower() or "youtu.be" in url.lower():
+        return download_youtube(url, format)
 
     # Fallback to yt-dlp cho Instagram Reels hoặc các trang khác
     ydl_opts = {

@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [format, setFormat] = useState("mp4");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
@@ -40,7 +41,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, format }),
       });
       
       const data = await res.json();
@@ -75,11 +76,20 @@ export default function Home() {
             <input
               type="url"
               className={styles.input}
-              placeholder="Paste TikTok or Instagram Reel link..."
+              placeholder="Paste YouTube, TikTok or Instagram Reel link..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               required
             />
+            <select 
+              className={styles.input} 
+              style={{ width: '120px', flex: 'none' }}
+              value={format} 
+              onChange={(e) => setFormat(e.target.value)}
+            >
+              <option value="mp4">MP4 (Video)</option>
+              <option value="mp3">MP3 (Audio)</option>
+            </select>
           </div>
           <button type="submit" className={styles.button} disabled={loading}>
             {loading ? (
@@ -108,7 +118,7 @@ export default function Home() {
                 className={styles.downloadBtn}
                 download
               >
-                Download Video
+                Download {result.format === "mp3" ? "Audio (MP3)" : "Video (MP4)"}
               </a>
             )}
           </div>
