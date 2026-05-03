@@ -3,6 +3,11 @@ import requests
 import os
 import tempfile
 
+try:
+    from .cookies import get_ytdlp_cookie_opts
+except ImportError:
+    from cookies import get_ytdlp_cookie_opts
+
 # On Vercel, only /tmp is writable. Locally, use public/downloads.
 DOWNLOAD_DIR = "/tmp/downloads" if os.environ.get("VERCEL") else "public/downloads"
 
@@ -26,7 +31,7 @@ def extract_tiktok(url: str):
 def download_youtube(url: str, format: str):
     try:
         # Extract info first (lightweight, no download)
-        with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+        with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True, **get_ytdlp_cookie_opts()}) as ydl:
             info = ydl.extract_info(url, download=False)
             vid = info.get('id', 'video')
             title = info.get('title', 'Video')
@@ -38,7 +43,7 @@ def download_youtube(url: str, format: str):
                 fmt = 'bestaudio/best'
             else:
                 fmt = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
-            with yt_dlp.YoutubeDL({'format': fmt, 'quiet': True, 'skip_download': True}) as ydl2:
+            with yt_dlp.YoutubeDL({'format': fmt, 'quiet': True, 'skip_download': True, **get_ytdlp_cookie_opts()}) as ydl2:
                 info2 = ydl2.extract_info(url, download=False)
                 video_url = info2.get('url')
             return {
@@ -60,6 +65,7 @@ def download_youtube(url: str, format: str):
                 'outtmpl': os.path.join(DOWNLOAD_DIR, f"{vid}.%(ext)s"),
                 'quiet': True,
                 'noplaylist': True,
+                **get_ytdlp_cookie_opts(),
             }
             if format == "mp3":
                 ydl_opts['format'] = 'bestaudio/best'
@@ -103,6 +109,7 @@ def extract_video_info(url: str, format: str = "mp4"):
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
+        **get_ytdlp_cookie_opts(),
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

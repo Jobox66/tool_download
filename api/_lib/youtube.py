@@ -1,6 +1,11 @@
 import yt_dlp
 import os
 
+try:
+    from .cookies import get_ytdlp_cookie_opts
+except ImportError:
+    from cookies import get_ytdlp_cookie_opts
+
 # On Vercel, only /tmp is writable. Locally, use public/downloads.
 DOWNLOAD_DIR = "/tmp/downloads" if os.environ.get("VERCEL") else "public/downloads"
 
@@ -10,6 +15,7 @@ def extract_channel_videos(channel_url: str):
         'quiet': True,
         'skip_download': True,
         'playlist_end': 20,
+        **get_ytdlp_cookie_opts(),
     }
     videos = []
     try:
@@ -78,7 +84,7 @@ def find_hot_segments(heatmap: list) -> list:
 
 def cut_hot_segment(video_url: str):
     try:
-        ydl_opts_info = {'quiet': True, 'skip_download': True}
+        ydl_opts_info = {'quiet': True, 'skip_download': True, **get_ytdlp_cookie_opts()}
 
         with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
             info = ydl.extract_info(video_url, download=False)
@@ -132,7 +138,8 @@ def cut_hot_segment(video_url: str):
             'outtmpl': output_filename,
             'quiet': True,
             'noplaylist': True,
-            'force_keyframes_at_cuts': True
+            'force_keyframes_at_cuts': True,
+            **get_ytdlp_cookie_opts(),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
