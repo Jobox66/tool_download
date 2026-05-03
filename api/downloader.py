@@ -1,5 +1,10 @@
 import yt_dlp
 import requests
+import os
+import tempfile
+
+# On Vercel, only /tmp is writable. Locally, use public/downloads.
+DOWNLOAD_DIR = "/tmp/downloads" if os.environ.get("VERCEL") else "public/downloads"
 
 def extract_tiktok(url: str):
     try:
@@ -18,25 +23,41 @@ def extract_tiktok(url: str):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-import os
-
 def download_youtube(url: str, format: str):
     try:
-        os.makedirs("public/downloads", exist_ok=True)
-        # Extract info first
+        # Extract info first (lightweight, no download)
         with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
             info = ydl.extract_info(url, download=False)
             vid = info.get('id', 'video')
             title = info.get('title', 'Video')
             thumbnail = info.get('thumbnail')
-            
+
+        # On Vercel serverless: return the direct stream URL instead of downloading
+        if os.environ.get("VERCEL"):
+            if format == "mp3":
+                fmt = 'bestaudio/best'
+            else:
+                fmt = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+            with yt_dlp.YoutubeDL({'format': fmt, 'quiet': True, 'skip_download': True}) as ydl2:
+                info2 = ydl2.extract_info(url, download=False)
+                video_url = info2.get('url')
+            return {
+                "success": True,
+                "title": title,
+                "thumbnail": thumbnail,
+                "video_url": video_url,
+                "source_url": url,
+                "format": format
+            }
+
+        # Local mode: download file to disk
+        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
         ext = "mp3" if format == "mp3" else "mp4"
-        output_filename = f"public/downloads/{vid}.{ext}"
-        
-        # Check if already downloaded
+        output_filename = os.path.join(DOWNLOAD_DIR, f"{vid}.{ext}")
+
         if not os.path.exists(output_filename):
             ydl_opts = {
-                'outtmpl': f"public/downloads/{vid}.%(ext)s", # yt-dlp replaces %(ext)s
+                'outtmpl': os.path.join(DOWNLOAD_DIR, f"{vid}.%(ext)s"),
                 'quiet': True,
                 'noplaylist': True,
             }
@@ -49,11 +70,11 @@ def download_youtube(url: str, format: str):
                 }]
             else:
                 ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
-                ydl_opts['outtmpl'] = output_filename # MP4 will be directly saved as mp4
-                
+                ydl_opts['outtmpl'] = output_filename
+
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
-                
+
         return {
             "success": True,
             "title": title,
@@ -89,7 +110,7 @@ def extract_video_info(url: str, format: str = "mp4"):
             video_url = info_dict.get('url', None)
             title = info_dict.get('title', 'Video')
             thumbnail = info_dict.get('thumbnail', None)
-            
+
             return {
                 "success": True,
                 "title": title,
